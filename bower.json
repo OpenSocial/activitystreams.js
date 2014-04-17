@@ -1,0 +1,15 @@
+{
+  "name": "activitystreams",
+  "version": "0.0.1",
+  "main": "dist/activitystreams.js",
+  "ignore": [
+    "**/.*",
+    "*.md",
+    "Gruntfile.js",
+    "package.json",
+    "bower.json"
+  ],
+  "dependencies": {},
+  "devDependencies": {},
+  "keywords": ["activitystreams"]
+}
