@@ -1,14 +1,28 @@
-/**********************************************************************
- * @overview Activity Streams 2.0 JavaScript Reference Implementation *
- * @copyright (c) 2014 International Business Machines                *
- * @author James M Snell (jasnell)                                    *
- * @license Apache Software License v2.0                              *
- **********************************************************************/
+/**
+ * Copyright 2013 OpenSocial Foundation
+ * Copyright 2013 International Business Machines Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Utility library for working with Activity Streams Actions
+ * Requires underscorejs.
+ *
+ * @author James M Snell (jasnell@us.ibm.com)
+ */
  /** @typedef {asms.Models.SimpleLinkValue|asms.Models.Object|Array<asms.Models.SimpleLinkValue|asms.Models.Object>} LinkValue **/
  /** @typedef {asms.Models.NaturalLanguageValue|string} NaturalLanguageValue **/
  /** @typedef {asms.Models.SimpleTypeValue|asms.Models.Object} TypeValue **/
- var module = module || undefined;
- var define = define || undefined;
+
 
 /** 
  * @namespace asms 
@@ -25,49 +39,88 @@
   }
 }(typeof window !== 'undefined' ? window : this, function(_$) {
 
-  var navigator = typeof navigator !== 'undefined' ? navigator : {};
+  var props          = Object.getOwnPropertyNames,
+      defineProperty = Object.defineProperty,
+      freeze         = Object.freeze,
+      is_array       = Array.isArray,
+      nativeForEach  = Array.prototype.forEach,
+      nativeIndexOf  = Array.prototype.indexOf,
+      objproto       = Object.prototype,
+      aryproto       = Array.prototype;
 
+  function bounded(m,h,l) {
+    return Math.min(Math.max(m,l),h);
+  }
+
+  function contains(a,b) {
+    if (a === undefined || a === null) return false;
+    if (nativeIndexOf && a.indexOf === nativeIndexOf)
+      return a.indexOf(b) > -1;
+    else if (typeof a === 'object')
+      return (b in a);
+    else return false;
+  }
+
+  // Get the default language for our language context. In modern
+  // browsers, this is fairly simple...we just call navigator.language,
+  // but navigator and navigator.language don't exist in every environment
+  // (like node) so we have to hard code a default.
+  var defaultLanguage = function(fallback) {
+    return typeof navigator !== 'undefined' && navigator.language ?
+      navigator.language : fallback;
+  }('en');
+
+  // Throw an error
   function invalidType() {
     return new Error('Invalid Type');
   }
   
+  /**
+   * If the native Array.isArray is not defined, provide an alternative
+   * implementation. Pretty straightforward.. attempt to toString and 
+   * see if it comes out as [object Array].
+   */
+  if (typeof is_array === 'undefined') {
+    is_array = function(obj) {
+      return Object.prototype.toString.call(obj) == '[object Array]';
+    };
+  }
+
+  /**
+   * If the native Object.freeze is not defined, we'll create a dummy
+   * non-op stub so we don't break, but it's not the end of the world
+   **/
+  if (typeof freeze === 'undefined')
+    freeze = function(obj) {};
+
+  /** 
+   * The same as underscore's approach. Polyfill forEach
+   * if we absolutely need to
+   **/
+   function each(obj, i, ctx) {
+     if (obj === undefined || obj === null)
+       return obj;
+     if (nativeForEach && obj.forEach === nativeForEach)
+       obj.forEach(i,ctx);
+     else
+       for (var n in obj)
+         i.call(ctx,obj[n],n,obj);
+   }
+
   /**
    * Call Object.freeze on obj and all of it's Own properties (recursively). 
    * The excludes argument specifies a list of Own property names to skip
    **/
   function deep_freeze(obj,excludes) {
     if (obj === undefined || typeof obj !== 'object') return;
-    Object.freeze(obj);
-    Object.getOwnPropertyNames(obj).forEach(
+    freeze(obj);
+    each(
+      props(obj), 
       function(n) {
-        if (excludes === undefined || (Array.isArray(excludes) && excludes.indexOf(n) === -1)) {
+        if (!contains(excludes,n))
           deep_freeze(obj[n]);
-        }
       }
     );
-  }
-
-  /**
-   * Array.isArray polyfill. If Array.isArray is undefined, defines a simple
-   * default implementation. Returns true if toString() returns '[object Array]'
-   */
-  if (Array.isArray === undefined) {
-    Array.isArray = function(obj) {
-      return Object.prototype.toString.call(obj) == '[object Array]';
-    };
-  }
-
-  /**
-   * Adds an isArray check to every Object
-   */
-  if (Object.prototype.isArray === undefined) {
-    Object.prototype.isArray = function() {
-      return Array.isArray(this);
-    };
-    Object.defineProperty(Object.prototype, 'isArray', {
-      enumerable: false,
-      configurable: false
-    });
   }
   
   /**
@@ -78,13 +131,13 @@
       return obj;
     switch(typeof type) {
     case 'string':
-      if (typeof obj == type)
+      if (typeof obj === type)
         return obj;
       break;
     case 'object':
-      if (type.isArray()) {
+      if (is_array(type)) {
         for (var n in type) {
-          if (typeof obj == type[n])
+          if (typeof obj === type[n])
             return obj;
         }
       }
@@ -97,42 +150,34 @@
     throw invalidType();
   }
   
-  function checkTypeIsNumber(obj) {
-    if (obj === undefined)
-      return;
-    checkType(obj,'number');
-  }
-  
-  /**
-   * Array.prototype.forEach Polyfill
-   **/
-  if (Array.prototype.forEach === undefined) {
-    Array.prototype.forEach = function(f,s) {
-      for (var n = 0; n < this.length; n++)
-        f.call(s||this,this[n]);
-    };
-    Object.defineProperty(Array.prototype, 'forEach', {
-      enumerable: false,
-      configurable: false
-    });
+  function checkTypeIsNumber() {
+    if (arguments.length == 1) {
+      var arg = arguments[0];
+      if (arg === undefined || arg === null) 
+        return;
+      if (isNaN(+arg))
+        throw invalidType();
+    } else each(
+      arguments, 
+      function(i) { checkTypeIsNumber(i); });
   }
 
   /**
-   * Object.extend Polyfill
+   * Fairly typical extend impl
    **/
-  if (Object.extend === undefined)
-    Object.extend = function(to,from) {
-      var props = Object.getOwnPropertyNames(from);
-      for (var n in props) {
-        // don't copy if the property is defined by (and has the 
-        // same value as) Object.prototype or Array.prototype
-        if ((n in Object.prototype && props[n] == Object.prototype[n]) ||
-            (n in Array.prototype && props[n] == Array.prototype[n]))
-          continue;
-        to[props[n]] = from[props[n]];
-      }
-      return to;
-    };
+  function ext(to,from) {
+    var defs = props(from);
+    for (var n in defs) {
+      // don't copy if the property is defined by (and has the 
+      // same value as) Object.prototype or Array.prototype
+      if ((n in objproto && props[n] === objproto[n]) ||
+          (n in aryproto && props[n] === aryproto[n]))
+        continue;
+      to[props[n]] = from[defs[n]];
+    }
+    return to;
+  }
+
 
   /**
    * For backwards compatible downstreamDuplicates and upstreamDuplicates
@@ -143,18 +188,19 @@
     if (source === undefined || source === undefined)
       return target;
     var ret = [].concat(target);
-    switch(source.__type__) {
-      case '__simple__':
-      case '__object__':
+    source = is_array(source) ? source : [source];
+    each(source, function() {
+      var type = +source.__type__;
+      if (type < 3)
         ret.push(source);
-        break;
-      case '__array__':
+      else if (type == 3)
         ret = ret.concat(source);
-        break;
-    }
-    Object.defineProperty(ret,'__type__',hidden(AS.Constants.__array__));
-    Object.defineProperty(ret,'__rel__',hidden(rel));
-    Object.freeze(ret);
+      }
+    );
+    defineProperty(ret,'__type__',hidden(3));
+    defineProperty(ret,'__rel__',hidden(rel));
+    freeze(ret);
+
     return ret;
   }
   
@@ -165,13 +211,13 @@
    **/
   function defineAllProperties(to, from) {
     to.__model__ = to.__model__ || from;
-    for (var m in from) {
-      if (typeof from[m] == 'object')
-        try {
-          to.__model__[m] = from[m];
-          Object.defineProperty(to,m,from[m]);
-        } catch (t) {}
-    }
+    each(from, function(m,n) {
+      try {
+        if (to.__model__ !== from)
+          to.__model__[n] = m;
+        defineProperty(to,n,m);
+      } catch (t) {}
+    });
   }
   
   /**
@@ -192,12 +238,14 @@
    * @param {Dictionary} [a] - The model definition )
    * @abstract
    **/
-  var Model = function(a) {
-    // if a is an object, assume it's another model (or set of property descriptors)
-    // and initialize this new model by copying those property descriptors to here
-    if (typeof a == 'object' && !a.isArray())
-      Object.extend(this,a);
-  };
+  function Model(a) {
+    if (this instanceof Model) {
+      // if a is an object, assume it's another model (or set of property descriptors)
+      // and initialize this new model by copying those property descriptors to here
+      if (typeof a === 'object' && !is_array(a))
+        ext(this,a);
+    } else return new Model(a);
+  }
 
   Model.prototype = {
     /** 
@@ -209,7 +257,7 @@
      * @memberOf asms.Model
      **/
     extend: function(a) {
-      return Object.extend(Object.create(this),a||{});
+      return ext(Object.create(this),a||{});
     },
     /** 
      * Add a new hidden (non-enumerable) property to the model 
@@ -236,7 +284,7 @@
      * @memberOf asms.Model
      **/
     property: function(name,accessor,key) {
-      this[key||name] = Models.property(accessor||name);
+      this[key||name] = M.property(accessor||name);
       return this;
     },
     /** 
@@ -249,7 +297,7 @@
      * @memberOf asms.Model
      **/
     link : function(name,key) {
-      this[key||name] = Models.link(name);
+      this[key||name] = M.link(name);
       return this;
     },
     /** 
@@ -266,7 +314,7 @@
      * @memberOf asms.Model
      **/
     boundNumber : function(name,low,high,defaultValue,fixed,key) {
-      this[key||name] = Models.boundNumber(name,low,high,defaultValue,fixed);
+      this[key||name] = M.boundNumber(name,low,high,defaultValue,fixed);
       return this;
     },
     /** 
@@ -280,7 +328,7 @@
      * @memberOf asms.Model
      **/
     number : function(name,fixed,key) {
-      this[key||name] = Models.number(name,fixed);
+      this[key||name] = M.number(name,fixed);
       return this;
     },
     /** 
@@ -293,7 +341,7 @@
      * @memberOf asms.Model
      **/
     nonNegativeNumber: function(name,key) {
-      this[key||name] = Models.nonNegativeNumber(name);
+      this[key||name] = M.nonNegativeNumber(name);
       return this;
     },
     /** 
@@ -306,7 +354,7 @@
      * @memberOf asms.Model
      **/
     nlv : function(name,key) {
-      this[key||name] = Models.nlv(name);
+      this[key||name] = M.nlv(name);
       return this;
     },
     /** 
@@ -320,7 +368,7 @@
      * @memberOf asms.Model
      **/
     type : function(name,ignoreUndefined,key) {
-      this[key||name] = Models.type(name,ignoreUndefined);
+      this[key||name] = M.type(name,ignoreUndefined);
       return this;
     },
     /** 
@@ -333,7 +381,7 @@
      * @memberOf asms.Model
      **/
     collection : function(name,key) {
-      this[key||name] = Models.collection(name);
+      this[key||name] = M.collection(name);
       return this;
     },
     /** 
@@ -346,7 +394,7 @@
      * @memberOf asms.Model
      **/
     dateTime : function(name,key) {
-      this[key||name] = Models.dateTime(name);
+      this[key||name] = M.dateTime(name);
       return this;
     },
     /** 
@@ -360,7 +408,7 @@
      * @memberOf asms.Model
      **/
     bool : function(name,key,defaultValue) {
-      this[key||name] = Models.boolean(name,defaultValue);
+      this[key||name] = M.boolean(name,defaultValue);
       return this;
     },
     /** 
@@ -373,7 +421,7 @@
      * @memberOf asms.Model
      **/
     parameters : function(name,key) {
-      this[key||name] = Models.parameters(name);
+      this[key||name] = M.parameters(name);
       return this;
     },
     /** 
@@ -387,7 +435,7 @@
      * @memberOf asms.Model
      **/
     genericObject : function(name,model,key) {
-      this[key||name] = Models.genericObject(name,model);
+      this[key||name] = M.genericObject(name,model);
       return this;
     },
     toString : function() {
@@ -402,10 +450,10 @@
       return 'Model: ' + desc.join(', ');
     }
   };
-  Object.freeze(Model.prototype);
+  freeze(Model.prototype);
   
   function _def_linkval(ret,n,item,_t,name) {
-    Object.defineProperty(ret,n,{
+    defineProperty(ret,n,{
       get: function() {
         return linkValue(item,_t,name);
       }
@@ -417,7 +465,7 @@
    * that can be applied after an object is created, allows us to 
    * have dynamic, pseudo multiple inheritance
    **/
-  var Models = {
+  var M = {
     property : function(accessor) {
       if (typeof accessor !== 'function') {
         var name = accessor;
@@ -432,17 +480,19 @@
       };
     },
     boolean : function(name,defaultValue) {
-      return Models.property(function() {
-        if (typeof this.__wrapped__ === 'object') {
-          if (name in this.__wrapped__)
-            return Boolean(this.__wrapped__[name]);
+      return M.property(
+        function() {
+          if (typeof this.__wrapped__ === 'object') {
+            if (name in this.__wrapped__)
+              return Boolean(this.__wrapped__[name]);
+          }
+          return typeof defaultValue == 'boolean' ?
+            defaultValue : false;
         }
-        return typeof defaultValue == 'boolean' ?
-          defaultValue : false;
-      });
+      );
     },
     link : function(name) {
-      return Models.property(
+      return M.property(
         function() {
           return AS.Transforms.toLink(
             this.__wrapped__[name],
@@ -451,15 +501,13 @@
       });
     },
     boundNumber : function(name,low,high,defaultValue,fixed) {
-      checkTypeIsNumber(defaultValue);
-      checkTypeIsNumber(low);
-      checkTypeIsNumber(high);
-      return Models.property(
+      checkTypeIsNumber(defaultValue,low,high);
+      return M.property(
         function() {
           var ret = this.__wrapped__[name] || defaultValue;
           checkTypeIsNumber(ret);
           if (ret !== undefined && ret !== null) {
-            ret = Math.max(Math.min(ret,high),low);
+            ret = bounded(ret,high,low);
             if (fixed !== undefined && ret.toFixed)
               ret = ret.toFixed(fixed);
           }
@@ -467,7 +515,7 @@
         });
     },
     nonNegativeNumber : function(name) {
-      return Models.property(
+      return M.property(
         function() {
           var ret = this.__wrapped__[name];
           if (ret !== undefined && ret !== null) {
@@ -478,7 +526,7 @@
         });
     },
     number: function(name,fixed) {
-      return Models.property(
+      return M.property(
         function() {
           var ret = this.__wrapped__[name];
           if (ret !== undefined && ret !== null) {
@@ -491,7 +539,7 @@
       );
     },
     nlv : function(name) {
-      return Models.property(
+      return M.property(
         function() {
           return naturalLanguageValue(
             this.__wrapped__[name],
@@ -500,7 +548,7 @@
       );
     },
     type : function(name,ignoreUndefined) {
-      return Models.property(
+      return M.property(
         function() {
           return typeValue(
             this.__wrapped__[name],
@@ -512,17 +560,17 @@
       );
     },
     collection : function(name) {
-      return Models.property(
+      return M.property(
         function() {
           return activityObject(
             this.__wrapped__[name],
             this,
-            Models.Collection);
+            M.Collection);
         }
       );
     },
     dateTime : function(name) {
-      return Models.property(
+      return M.property(
         function() {
           var ret = this.__wrapped__[name];
           if (name !== undefined && name !== null)
@@ -533,10 +581,10 @@
       );
     },
     parameters : function(name) {
-      return Models.property(
+      return M.property(
         function() {
           function defprop(ret,n,val,context) {
-            Object.defineProperty(ret,n,{
+            defineProperty(ret,n,{
               enumerable: true,
               configurable: false,
               get: function() {
@@ -550,17 +598,16 @@
           checkType(ret, ['object']);
           checkNotArray(ret);
           if (!ret.__wrapped__) {
-            for (var n in ret) {
+            for (var n in ret)
               defprop(ret,n,ret[n],this);
-            }
-            Object.defineProperty(ret,'__wrapped__',hidden(true));
+            defineProperty(ret,'__wrapped__',hidden(true));
           }
           return ret;
         }
       );
     },
     genericObject : function(name,model) {
-      return Models.property(
+      return M.property(
         function() {
           return activityObject(
             this.__wrapped__[name],
@@ -598,7 +645,7 @@
    * @memberOf asms.Models
    * @abstract
    */
-  Models.Base = new Model({
+  M.Base = new Model({
     /** 
      * the hidden() properties are non-enumerable, immutable properties
      * used internally. The __wrapped__ property is the vanilla js object
@@ -637,7 +684,7 @@
       return activityObject(
         this.__wrapped__,
         this.__context__,
-        Models.Activity,
+        M.Activity,
         this.__model__);
     },true),
     /** 
@@ -651,7 +698,7 @@
       return activityObject(
         this.__wrapped__,
         this.__context__,
-        Models.Collection,
+        M.Collection,
         this.__model__
       );
     },true),
@@ -748,7 +795,7 @@
      **/
     toString: hidden(function() {
       return JSON.stringify(this.__wrapped__);
-    })
+    },true)
   });
 
   /**
@@ -758,7 +805,7 @@
    * @augments asms.Models.Base
    * @abstract
    */
-  Models.TypeValue = Models.Base.extend().
+  M.TypeValue = M.Base.extend().
     /** 
      * The TypeValue instance type. One of "string" or "object"
      * @name __type__
@@ -785,8 +832,8 @@
    * @augments asms.Models.TypeValue
    * @abstract
    */
-  Models.SimpleTypeValue =
-    Models.TypeValue.extend()
+  M.SimpleTypeValue =
+    M.TypeValue.extend()
       /**
        * Returns the id of this TypeValue
        * @name id
@@ -804,7 +851,7 @@
    * @augments asms.Models.Base 
    * @abstract
    **/
-  Models.Object = Models.Base.extend().
+  M.Object = M.Base.extend().
     /**
      * Returns the ID of this object
      * @name id
@@ -826,7 +873,7 @@
      **/
     property('objectType', function() {
       var type = this.__wrapped__.objectType || this.__wrapped__['@type'];
-      return typeValue(type,this);
+      return typeValue(type,this,undefined,true);
     }).
     /**
      * Returns the @type of this object
@@ -892,7 +939,7 @@
       return lang ||
         (this.__context__  ?
           this.__context__.language :
-            navigator.language) || 'en';
+            defaultLanguage) || 'en';
     }).
     /**
      * Returns the link relation of this object
@@ -936,8 +983,11 @@
       if ('duplicates' in this.__wrapped__)
         ret = linkValue(this.__wrapped__.duplicates,this);
       else ret = AS.Transforms.toLink([]);
-      ret = mergeLinkValues(ret,this.downstreamDuplicates,'duplicates');
-      ret = mergeLinkValues(ret,this.upstreamDuplicates,'duplicates');
+      ret = mergeLinkValues(
+        ret,
+        [this.downstreamDuplicates,
+         this.upstreamDuplicates],
+        'duplicates');
       return ret;
     }).
     /**
@@ -1236,7 +1286,7 @@
    * @augments asms.Models.Object
    * @abstract
    **/
-  Models.Activity = Models.Object.extend().
+  M.Activity = M.Object.extend().
     /**
      * Returns the verb of this activity
      * @name verb
@@ -1383,7 +1433,7 @@
    * @augments asms.Models.Base
    * @abstract
    **/
-  Models.LinkValue = Models.Base.extend().
+  M.LinkValue = M.Base.extend().
     /**
      * The type of link value (one of "string", "object", "array")
      * @name __type__
@@ -1401,7 +1451,7 @@
    * @augments asms.Models.Base
    * @abstract
    */
-  Models.SimpleLinkValue = Models.Base.extend().
+  M.SimpleLinkValue = M.Base.extend().
     /**
      * The href of this link
      * @name href
@@ -1428,7 +1478,7 @@
    * @augments asms.Models.Object
    * @abstract
    */
-  Models.Collection = Models.Object.extend().
+  M.Collection = M.Object.extend().
     /**
      * The total number of items in the logical collection
      * @name totalItems
@@ -1449,7 +1499,7 @@
     property('items', function() {
       var ret = this.__wrapped__.items;
         if (ret !== undefined && ret !== null) {
-          if (Array.isArray(ret)) {
+          if (is_array(ret)) {
             var _this = this;
             ret = ret.map(
               function(i) {
@@ -1553,7 +1603,7 @@
    * @augments asms.Models.Object
    * @abstract
    */
-  Models.ActionHandler = Models.Object.extend().
+  M.ActionHandler = M.Object.extend().
     /**
      * @name context
      * @memberOf asms.Models.ActionHandler
@@ -1618,7 +1668,7 @@
    * @augments asms.Models.ActionHandler
    * @abstract
    */
-  Models.HttpActionHandler = Models.ActionHandler.extend().
+  M.HttpActionHandler = M.ActionHandler.extend().
     /**
      * @name method
      * @memberOf asms.Models.HttpActionHandler
@@ -1643,7 +1693,7 @@
    * @augments asms.Models.ActionHandler
    * @abstract
    */
-  Models.EmbedActionHandler = Models.ActionHandler.extend().
+  M.EmbedActionHandler = M.ActionHandler.extend().
     /**
      * @name style
      * @memberOf asms.Models.EmbedActionHandler
@@ -1676,7 +1726,7 @@
    * @augments asms.Models.ActionHandler
    * @abstract
    */
-  Models.IntentActionHandler = Models.ActionHandler.extend();
+  M.IntentActionHandler = M.ActionHandler.extend();
   
   /**
    * @kind class
@@ -1685,7 +1735,7 @@
    * @augments asms.Models.Object
    * @abstract
    */
-  Models.Parameter = Models.Object.extend().
+  M.Parameter = M.Object.extend().
     /**
      * @name required
      * @memberOf asms.Models.Parameter
@@ -1782,7 +1832,7 @@
    * @augments asms.Models.Object
    * @abstract
    */
-  Models.UrlTemplate = Models.Object.extend().
+  M.UrlTemplate = M.Object.extend().
     /**
      * @name template
      * @memberOf asms.Models.UrlTemplate
@@ -1807,7 +1857,7 @@
    * @augments asms.Models.Object
    * @abstract
    */
-  Models.TypedPayload = Models.Object.extend().
+  M.TypedPayload = M.Object.extend().
     /**
      * @name semanticType
      * @memberOf asms.Models.TypedPayload
@@ -1832,14 +1882,14 @@
    * @augments asms.Models.Object
    * @abstract
    */
-  Models.HtmlForm = Models.Object.extend().
+  M.HtmlForm = M.Object.extend().
     parameters('parameters','params');
 
   /**
    * @namespace Models.Ext
    * @memberOf asme.Models
    **/
-  Models.Ext = {};
+  M.Ext = {};
 
   /**
    * @kind class
@@ -1848,7 +1898,7 @@
    * @abstract
    * @mixin
    */
-  Models.Ext.Replies = new Model({}).
+  M.Ext.Replies = new Model({}).
     /**
      * @name attending
      * @memberOf asms.Models.Ext.Replies
@@ -1952,7 +2002,7 @@
    * @augments asms.Models.Base
    * @abstract
    */
-  Models.Ext.Position = Models.Base.extend().
+  M.Ext.Position = M.Base.extend().
     /**
      * @name altitude
      * @memberOf asms.Models.Ext.Position
@@ -1984,7 +2034,7 @@
    * @augments asms.Models.Base
    * @abstract
    */
-  Models.Ext.Address = Models.Base.extend().
+  M.Ext.Address = M.Base.extend().
     /**
      * @name formated
      * @memberOf asms.Models.Ext.Address
@@ -2040,7 +2090,7 @@
    * @augments asms.Models.Base
    * @abstract
    */
-  Models.Ext.Place = Models.Base.extend().
+  M.Ext.Place = M.Base.extend().
     /**
      * @name position
      * @memberOf asms.Models.Ext.Place
@@ -2048,7 +2098,7 @@
      * @public
      * @type {asms.Models.Ext.Position}
      **/
-    genericObject('position',Models.Ext.Position).
+    genericObject('position',M.Ext.Position).
     /**
      * @name address
      * @memberOf asms.Models.Ext.Place
@@ -2056,7 +2106,7 @@
      * @public
      * @type {asms.Models.Ext.Address}
      **/
-    genericObject('address',Models.Ext.Address);
+    genericObject('address',M.Ext.Address);
   /**
    * @kind class
    * @name asms.Models.Ext.Mood
@@ -2064,7 +2114,7 @@
    * @augments asms.Models.Base
    * @abstract
    */
-  Models.Ext.Mood = Models.Base.extend().
+  M.Ext.Mood = M.Base.extend().
     /**
      * @name mood
      * @memberOf asms.Models.Ext.Mood
@@ -2077,7 +2127,7 @@
   // the objects...
   
   function checkNotArray(obj) {
-    if (Array.isArray(obj))
+    if (is_array(obj))
       throw invalidType();
     return obj;
   }
@@ -2085,8 +2135,8 @@
   function defmodel(_t,model,extmodel,ignoreObjectType) {
     defineAllProperties(_t,model);
     if(!ignoreObjectType && _t.objectType !== undefined) {
-      if (_t.objectType.id in Models.forObjectType) {
-        var otmodel = Models.forObjectType[_t.objectType.id];
+      if (_t.objectType.id in M.forObjectType) {
+        var otmodel = M.forObjectType[_t.objectType.id];
         if (otmodel !== model &&
             otmodel !== extmodel)
           defineAllProperties(_t,otmodel);
@@ -2097,11 +2147,11 @@
   }
   
   function def_actions(actions,n,val,context) {
-    Object.defineProperty(actions,n,{
+    defineProperty(actions,n,{
       enumerable: true,
       configurable: false,
       get: function() {
-        return AS.Transforms.toLink(val,context,n, Models.ActionHandler);
+        return AS.Transforms.toLink(val,context,n, M.ActionHandler);
       }
     });
   }
@@ -2125,7 +2175,7 @@
         var val = actions[n];
         def_actions(actions,n,val,context);
       }
-      Object.defineProperty(actions,'__wrapped__',
+      defineProperty(actions,'__wrapped__',
         hidden(true));
     }
     return actions;
@@ -2146,7 +2196,7 @@
     if (nlv === undefined || nlv === null) return undefined;
     if (!nlv.__wrapped__) {
       var ret;
-      var deflang = context.language || navigator.language  || 'en';
+      var deflang = context.language || defaultLanguage  || 'en';
       if (deflang.indexOf('*') != -1)
         throw new Error('Default language context cannot be a wildcard');
       switch(typeof nlv) {
@@ -2160,8 +2210,12 @@
         default:
           throw invalidType();
       }
-      Object.defineProperty(ret, '__wrapped__', hidden(true));
-      Object.defineProperty(ret, 'toString', hidden(
+      defineProperty(ret, '__wrapped__', hidden(true));
+      defineProperty(ret, '*', hidden(
+        function() { 
+          return ret[deflang]; 
+        }, true));
+      defineProperty(ret, 'toString', hidden(
         function() {
           return ret[deflang];
         }, false
@@ -2179,29 +2233,29 @@
       __context__: context,
       __rel__: rel
     };
-    var model = Models.SimpleLinkValue;
+    var model = M.SimpleLinkValue;
     switch(typeof lv) {
     case 'string':
-      model = Models.SimpleLinkValue;
+      model = M.SimpleLinkValue;
       ret.__type__ = AS.Constants.__simple__;
       break;
     case 'object':
       checkNotArray(lv);
-      model = Models.Object;
+      model = M.Object;
       ret.__type__ = AS.Constants.__object__;
       break;
     default:
       throw invalidType();
     }
     defmodel(ret,model,extmodel);
-    Object.freeze(ret);
+    freeze(ret);
     return ret;
   }
   
   function typeValue(tv, context, extmodel, ignoreUndefined) {
     if (!ignoreUndefined && (tv === undefined || tv === null))
       return undefined;
-    if (tv.__wrapped__)
+    if (tv && tv.__wrapped__)
       return tv;
     checkType(tv,['string','object']);
     checkNotArray(tv);
@@ -2211,11 +2265,11 @@
       __wrapped__ : tv,
       __context__ : context
     };
-    var model = Models.SimpleTypeValue;
+    var model = M.SimpleTypeValue;
     switch(typeof tv) {
     case 'object':
       ret.__type__ = AS.Constants.__object__;
-      model = Models.Object;
+      model = M.Object;
       break;
     case 'string':
       ret.__type__ = AS.Constants.__simple__;
@@ -2227,7 +2281,7 @@
       throw invalidType();
     }
     defmodel(ret,model,extmodel);
-    Object.freeze(ret);
+    freeze(ret);
     return ret;
   }
 
@@ -2238,13 +2292,13 @@
       return inner;
     checkType(inner,'object');
     checkNotArray(inner);
-    model = model || Models.Object;
+    model = model || M.Object;
     var ret = {
       __wrapped__: inner,
       __context__: context
     };
     defmodel(ret,model,extmodel);
-    Object.freeze(ret);
+    freeze(ret);
     return ret;
   }
   
@@ -2255,22 +2309,22 @@
    * @member
    * @type {object}
    **/
-  Models.forObjectType = {
-    activity: Models.Activity,
-    collection: Models.Collection,
-    verb: Models.Object,
-    objectType: Models.Object,
-    HttpActionHandler: Models.HttpActionHandler,
-    EmbedActionHandler: Models.EmbedActionHandler,
-    IntentActionHandler: Models.IntentActionHandler,
-    HtmlForm: Models.HtmlForm,
-    UrlTemplate: Models.UrlTemplate,
-    typedPayload: Models.TypedPayload,
-    parameter: Models.Parameter,
-    place: Models.Ext.Place,
-    address: Models.Ext.Address,
-    position: Models.Ext.Position,
-    mood: Models.Ext.Mood
+  M.forObjectType = {
+    activity: M.Activity,
+    collection: M.Collection,
+    verb: M.Object,
+    objectType: M.Object,
+    HttpActionHandler: M.HttpActionHandler,
+    EmbedActionHandler: M.EmbedActionHandler,
+    IntentActionHandler: M.IntentActionHandler,
+    HtmlForm: M.HtmlForm,
+    UrlTemplate: M.UrlTemplate,
+    typedPayload: M.TypedPayload,
+    parameter: M.Parameter,
+    place: M.Ext.Place,
+    address: M.Ext.Address,
+    position: M.Ext.Position,
+    mood: M.Ext.Mood
   };
   
   /**
@@ -2344,17 +2398,13 @@
      **/
     indexTypeValuesFromCollection: function(collection) {
       var ret = {};
+      var ids = ['verb','objectType'];
       var items = collection.items;
-      if (items !== undefined && Array.isArray(items)) {
-        for (var n in items) {
-          var item = items[n];
-          var id = item.objectType.id;
-          if (['verb','objectType'].indexOf(id) != -1) {
-            if (item.id !== undefined)
-              ret[item.id] = item.__wrapped__;
-          }
-        }
-      }
+      if (is_array(items))
+        each(items, function(item) {
+          if (contains(ids,item.objectType.id) && item.id)
+            ret[item.id] = item.__wrapped__;
+        });
       return ret;
     },
     /** 
@@ -2373,9 +2423,9 @@
     parse: function(input) {
       var inner = JSON.parse(input);
       if ('verb' in inner)
-        return activityObject(inner,undefined,Models.Activity);
+        return activityObject(inner,undefined,M.Activity);
       else if ('items' in inner)
-        return activityObject(inner,undefined,Models.Collection);
+        return activityObject(inner,undefined,M.Collection);
       else
         return activityObject(inner);
     },
@@ -2417,7 +2467,7 @@
      * @memberOf asms
      */
     Collection : function(inner) {
-      return activityObject(inner,undefined,Models.Collection);
+      return activityObject(inner,undefined,M.Collection);
     },
     /**
      * Generates an asms.Activity from a raw input JavaScript object.
@@ -2433,7 +2483,7 @@
      * @memberOf asms
      */
     Activity : function(inner) {
-      return activityObject(inner,undefined,Models.Activity);
+      return activityObject(inner,undefined,M.Activity);
     },
     /** 
      * Provides various useful transform functions
@@ -2447,15 +2497,15 @@
       toLink : function(i,context,rel,extmodel) {
         if (i === undefined)
           return undefined;
-        if (Array.isArray(i)) {
+        if (is_array(i)) {
           if (i.__type__ === undefined) {
             for(var n in i)
               _def_linkval(i,n,i[n],this,rel);
             i.__type__ = AS.Constants.__array__;
             i.__rel__ = rel;
-            Object.defineProperty(i,'__type__',hidden());
-            Object.defineProperty(i,'__rel__',hidden());
-            Object.freeze(i);
+            defineProperty(i,'__type__',hidden());
+            defineProperty(i,'__rel__',hidden());
+            freeze(i);
           }
           return i;
         } else
@@ -2477,7 +2527,7 @@
        * @memberOf asms.Transforms
        */
       toCollection : function(i, context) {
-        return activityObject(i, context, Models.Collection);
+        return activityObject(i, context, M.Collection);
       },
       /**
        * @memberOf asms.Transforms
@@ -2489,7 +2539,7 @@
        * @memberOf asms.Transforms
        */
       toActivity : function(i, context) {
-        return activityObject(i, context, Models.Activity);
+        return activityObject(i, context, M.Activity);
       },
       /**
        * @memberOf asms.Transforms
@@ -2520,12 +2570,12 @@
          * @constant
          * @default
          * @memberOf asms.Constants **/
-      __object__ : '__object__',
+      __object__ : 2,
       /** 
          * @constant
          * @default
          * @memberOf asms.Constants **/
-      __simple__ : '__simple__',
+      __simple__ : 1,
       /** 
          * @constant
          * @default
@@ -2535,7 +2585,7 @@
          * @constant
          * @default
          * @memberOf asms.Constants **/
-      __array__ : '__array__',
+      __array__ : 3,
       /** 
          * @constant
          * @default
@@ -3272,7 +3322,7 @@
      * @memberOf asms
      * @namespace asms.Models
      */
-    Models : Models
+    Models : M
   };
   deep_freeze(AS, ['Models']);
 

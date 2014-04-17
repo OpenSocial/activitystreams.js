@@ -176,7 +176,7 @@
       to[props[n]] = from[defs[n]];
     }
     return to;
-  };
+  }
 
 
   /**
@@ -245,7 +245,7 @@
       if (typeof a === 'object' && !is_array(a))
         ext(this,a);
     } else return new Model(a);
-  };
+  }
 
   Model.prototype = {
     /** 
