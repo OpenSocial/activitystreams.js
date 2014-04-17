@@ -2,11 +2,25 @@
   "name": "activitystreams",
   "version": "0.0.1",
   "description": "Activity Streams 2.0 JavaScript Reference Implementation",
+  "author": {
+    "name":"James M Snell",
+    "email":"jasnell@us.ibm.com"
+  },
   "keywords": [
     "activitystreams"
   ],
   "maintainers": [
     "James M Snell <jasnell@us.ibm.com> (http://www.chmod777self.com)"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenSocial/activitystreams.js"
+  },
+  "licenses": [
+    {
+      "type": "Apache-2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
   ],
   "devDependencies": {
     "grunt": "~0.4.2",
