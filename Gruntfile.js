@@ -5,7 +5,7 @@ module.exports = function(grunt) {
     srcFolder: 'src',
     uglify: {
       options: {
-        banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> Copyright (c) 2014 International Business Machines, Apache Software License v2.0 */\n'
+        banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> Copyright (c) 2013 International Business Machines & OpenSocial Foundation, Apache Software License v2.0 */\n'
       },
       build: {
         src: '<%= distFolder %>/<%= pkg.name %>.js',
