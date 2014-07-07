@@ -173,7 +173,7 @@
       if ((n in objproto && props[n] === objproto[n]) ||
           (n in aryproto && props[n] === aryproto[n]))
         continue;
-      to[props[n]] = from[defs[n]];
+      to[defs[n]] = from[defs[n]];
     }
     return to;
   }
@@ -626,7 +626,7 @@
    **/
   function hidden(value,fisget) {
     var ret = {
-      enumerable: false,
+      enumerable: true,
       configurable: false
     };
     if (value === undefined)
@@ -793,8 +793,10 @@
      * @kind function
      * @private
      **/
-    toString: hidden(function() {
-      return JSON.stringify(this.__wrapped__);
+    toJson: hidden(function() {
+      return function() {
+        return JSON.stringify(this.__wrapped__);
+      };
     },true)
   });
 
@@ -2215,7 +2217,7 @@
         function() { 
           return ret[deflang]; 
         }, true));
-      defineProperty(ret, 'toString', hidden(
+      defineProperty(ret, 'toJson', hidden(
         function() {
           return ret[deflang];
         }, false
@@ -2498,16 +2500,15 @@
         if (i === undefined)
           return undefined;
         if (is_array(i)) {
-          if (i.__type__ === undefined) {
-            for(var n in i)
-              _def_linkval(i,n,i[n],this,rel);
-            i.__type__ = AS.Constants.__array__;
-            i.__rel__ = rel;
-            defineProperty(i,'__type__',hidden());
-            defineProperty(i,'__rel__',hidden());
-            freeze(i);
-          }
-          return i;
+          var rr = [];
+          for (var n in i)
+            _def_linkval(rr,n,i[n],this,rel);
+          rr.__type__ = AS.Constants.__array__;
+          rr.__rel__ = rel;
+          defineProperty(i,'__type__',hidden());
+          defineProperty(i,'__rel__',hidden());
+          freeze(rr);
+          return rr;
         } else
           return linkValue(i,context,rel,extmodel);
       },
@@ -2546,7 +2547,9 @@
        */
       toDateTime : function(val) {
         var ret;
-        if (val instanceof Date)
+        if (typeof val === 'undefined')
+          return val;
+        else if (val instanceof Date)
           ret = val;
         else if (typeof val == 'string')
           ret = new Date(val);
