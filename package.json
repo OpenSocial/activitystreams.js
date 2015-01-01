@@ -1,10 +1,10 @@
 {
   "name": "activitystreams",
-  "version": "0.0.1",
-  "description": "Activity Streams 2.0 JavaScript Reference Implementation",
+  "version": "0.0.2",
+  "description": "Activity Streams 2.0 JavaScript Implementation",
   "author": {
-    "name":"James M Snell",
-    "email":"jasnell@us.ibm.com"
+    "name": "James M Snell",
+    "email": "jasnell@us.ibm.com"
   },
   "keywords": [
     "activitystreams"
@@ -14,7 +14,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/OpenSocial/activitystreams.js"
+    "url": "https://github.com/jasnell/activitystreams.js"
   },
   "licenses": [
     {
@@ -22,6 +22,13 @@
       "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
     }
   ],
+  "dependencies": {
+    "es6-shim": "git+https://github.com/paulmillr/es6-shim.git",
+    "jsonld": "git+https://github.com/digitalbazaar/jsonld.js.git",
+    "n3": "^0.3.6",
+    "rfc5646": "0.0.1",
+    "uuid": "^2.0.1"
+  },
   "devDependencies": {
     "grunt": "~0.4.2",
     "grunt-contrib-jshint": "~0.8.0",
@@ -30,5 +37,5 @@
     "grunt-contrib-concat": "~0.3.0",
     "grunt-jsdoc": "^0.5.4"
   },
-  "main": "./dist/activitystreams.js"
+  "main": "./src/activitystreams.js"
 }
