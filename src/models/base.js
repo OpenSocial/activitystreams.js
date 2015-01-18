@@ -57,7 +57,7 @@ Base.prototype = {
   },
   get : function(key) {
     key = utils.parsed_url(vocabs.as[key]||key);
-    var res = this._store.findByUri(this._subject, key, null);
+    var res = this._store.findByIRI(this._subject, key, null);
     var ret, n, val;
     if (this._reasoner.is_language_property(key)) {
       ret = new LanguageValue();
@@ -81,18 +81,21 @@ Base.prototype = {
   export : function(callback) {
     if (typeof callback !== 'function')
       throw new Error('callback must be specified');
-    utils.jsonld.compact(
-      write_out(
-        this._reasoner, 
-        this._subject, 
-        this._store), 
-      function(err, doc) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        callback(null, doc);
-      });
+    var self = this;
+    process.nextTick(function() {
+      utils.jsonld.compact(
+        write_out(
+          self._reasoner, 
+          self._subject, 
+          self._store), 
+        function(err, doc) {
+          if (err) {
+            callback(err);
+            return;
+          }
+          callback(null, doc);
+        });
+    });
   },
   write : function(callback) {
     this.export(function(err,doc) {
@@ -115,7 +118,7 @@ Base.prototype = {
 };
 
 function write_out(reasoner, subject, store) {
-  var triples = store.findByUri(subject, null, null);
+  var triples = store.findByIRI(subject, null, null);
   var ret = {};
   if (!N3.Util.isBlank(subject) && !subject.match(/^urn:id/))
     ret['@id'] = subject;
@@ -186,7 +189,7 @@ Base.Builder.prototype = {
       // if it's a functional property, delete any existing value that may exist
       if (_reasoner.is_functional(key)) {
         utils.throwif(is_array, 'Functional Properties cannot have Array values');
-        _store.findByUri(_subject, key, null).forEach(_store.removeTriple);
+        _store.findByIRI(_subject, key, null).forEach(_store.removeTriple);
       }
       if (is_array) {
         // split it up and set each value separately...

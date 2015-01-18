@@ -23,19 +23,15 @@
     }
   ],
   "dependencies": {
-    "es6-shim": "git+https://github.com/paulmillr/es6-shim.git",
-    "jsonld": "git+https://github.com/digitalbazaar/jsonld.js.git",
-    "n3": "^0.3.6",
+    "jsonld": "^0.3.19",
+    "n3": "^0.4.0",
     "rfc5646": "0.0.1",
     "uuid": "^2.0.1"
   },
   "devDependencies": {
     "grunt": "~0.4.2",
     "grunt-contrib-jshint": "~0.8.0",
-    "grunt-contrib-nodeunit": "~0.3.2",
-    "grunt-contrib-uglify": "~0.4.0",
-    "grunt-contrib-concat": "~0.3.0",
-    "grunt-jsdoc": "^0.5.4"
+    "grunt-contrib-nodeunit": "~0.3.2"
   },
   "main": "./src/activitystreams.js"
 }

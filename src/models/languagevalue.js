@@ -1,4 +1,5 @@
-var utils = require('../utils');
+var utils = require('../utils'),
+    LanguageTag = require('rfc5646');
 
 function LanguageValue() {
   if (!(this instanceof LanguageValue))

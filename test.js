@@ -1,13 +1,19 @@
 var a = require('./src/activitystreams.js')
-  .once('ready', function() {
-    a.import(
-      {
-        '@type': 'Reservation',
-        displayName:'Joe'
-      }, 
-      function(err, doc) {
-        console.log(doc.type);
+
+a.import(
+  {
+    '@type': 'Reservation',
+    displayNameMap: 'J"o"e'
+  }, 
+  function(err, doc) {
+    
+    doc.export(
+      function(e,d) {
+        console.log(JSON.stringify(d));
       }
     );
-  } 
+
+  }
 );
+
+

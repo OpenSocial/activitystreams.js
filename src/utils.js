@@ -258,8 +258,8 @@ exports.jsonld = Object.create({
               object = object.value;
             } else if (object.type === 'literal') {
               var val = '"' + object.value + '"';
-              if (object.lang)
-                val += '@' + object.lang;
+              if (object.language)
+                val += '@' + object.language;
               else if (object.datatype)
                 val += '^^' + object.datatype;
               object = val;

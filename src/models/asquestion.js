@@ -45,5 +45,5 @@ util.inherits(AsQuestion.Builder, AsActivity.Builder);
   };
 });
 
-exports.AsQuestion = AsQuestion;
+module.exports = AsQuestion;
 

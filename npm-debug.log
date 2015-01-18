@@ -1,0 +1,29 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/usr/local/bin/node',
+1 verbose cli   '/usr/local/bin/npm',
+1 verbose cli   'uninstall',
+1 verbose cli   'grunt-jsdoc' ]
+2 info using npm@1.4.28
+3 info using node@v0.10.35
+4 verbose node_modules/grunt-jsdoc unbuild
+5 info preuninstall grunt-jsdoc@0.5.7
+6 info uninstall grunt-jsdoc@0.5.7
+7 verbose true,/Users/james/Projects/activitystreams.js/node_modules,/Users/james/Projects/activitystreams.js/node_modules unbuild grunt-jsdoc@0.5.7
+8 verbose /Users/james/Projects/activitystreams.js/node_modules/.bin,[object Object] binRoot
+9 info postuninstall grunt-jsdoc@0.5.7
+10 error Error: EACCES, unlink '/Users/james/Projects/activitystreams.js/node_modules/grunt-jsdoc/node_modules/.bin/jsdoc'
+10 error  { [Error: EACCES, unlink '/Users/james/Projects/activitystreams.js/node_modules/grunt-jsdoc/node_modules/.bin/jsdoc']
+10 error   errno: 3,
+10 error   code: 'EACCES',
+10 error   path: '/Users/james/Projects/activitystreams.js/node_modules/grunt-jsdoc/node_modules/.bin/jsdoc' }
+11 error Please try running this command again as root/Administrator.
+12 error System Darwin 14.0.0
+13 error command "/usr/local/bin/node" "/usr/local/bin/npm" "uninstall" "grunt-jsdoc"
+14 error cwd /Users/james/Projects/activitystreams.js
+15 error node -v v0.10.35
+16 error npm -v 1.4.28
+17 error path /Users/james/Projects/activitystreams.js/node_modules/grunt-jsdoc/node_modules/.bin/jsdoc
+18 error code EACCES
+19 error errno 3
+20 error stack Error: EACCES, unlink '/Users/james/Projects/activitystreams.js/node_modules/grunt-jsdoc/node_modules/.bin/jsdoc'
+21 verbose exit [ 3, true ]

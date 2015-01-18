@@ -15,7 +15,7 @@ util.inherits(AsObject, Base);
  'icon', 'image', 'inReplyTo', 'memberOf', 'location',
  'locationOf', 'objectOf', 'originOf', 'preview', 
  'previewOf', 'published', 'rating', 'resultOf', 
- 'replies', 'scope', 'scopeOf', 'starttime', 'summary',
+ 'replies', 'scope', 'scopeOf', 'startTime', 'summary',
  'tag', 'tagOf', 'targetOf', 'title', 'updated', 'url'].forEach(function(key) {
   utils.defineProperty(AsObject.prototype, key, function() {
     return this.get(vocabs.as[key]);

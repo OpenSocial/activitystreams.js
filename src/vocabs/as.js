@@ -14,7 +14,7 @@ require('./vocabulary')(
     'Reservation', 'Review', 'Role', 'Save', 'Service', 'Share', 'Story',    
     'TentativeAccept', 'TentativeReject', 'Undo', 'Update', 'UrlTemplate',    
     'Video', 'Experience', 'View', 'Watch', 'Listen', 'Read', 'Respond',    
-    'Move', 'Travel',    
+    'Move', 'Travel', 'Complete', 
     'action', 'actor', 'attributedTo', 'attributedWith', 'actorOf', 'attachedTo',    
     'attachment', 'attachments', 'author', 'authorOf', 'bcc', 'bto', 'cc',    
     'context', 'contextOf', 'current', 'first', 'generator', 'generatorOf',    
