@@ -18,142 +18,162 @@ TODO
 
 ### Usage
 
-The Activity Streams Objects are generated as wrappers around vanilla JavaScript objects.
+The Activity Streams Objects are generated as wrappers around an n3 in-memory store.
 These wrappers understand the Activity Streams 2.0 model and make it possible to work with
 Activity Streams objects in a consistent way with integrated type checking.
 
-HTML:
-```html
-<html>
-<head>
-  <script src="js/activitystreams.min.js"></script>
-  <script>
-    var activity = asms.Activity({
-      verb: 'post',
-      actor: {
-        displayName: 'Joe',
-        id: 'acct:joe@example.org'
-      },
-      object: {
-        objectType: 'note',
-        content: 'This is a short note'
-      },
-      updated: new Date()
-    });
-
-    console.log(activity.verb.id);
-    console.log(activity.actor.displayName);
-    console.log(activity.object.objectType.id);
-    console.log(activity.object.content['*']);
-
-    console.log(activity.toString()); // output json
-  </script>
-</head>
-</html>
-```
-
-Node.js:
 ```javascript
-var asms = require('activitystreams');
-var activity = asms.Activity({
-  verb: 'post',
-  actor: {
-    displayName: 'Joe',
-    id: 'acct:joe@example.org'
-  },
-  object: {
-    objectType: 'note',
-    content: 'This is a short note'
-  },
-  updated: new Date()
-});
+var as = require('activitystreams');
 
-console.log(activity.verb.id);
-console.log(activity.actor.displayName);
-console.log(activity.object.objectType.id);
-console.log(activity.object.content['*']);
+// Create a simple object
+as.object().
+  displayName('baz').
+  content('bar', 'en').
+  content('foo', 'fr').
+  publishedNow().
+  rating(2.5).
+  get().
+  prettyWrite(function(err,doc) {
+    console.log(doc);
+  });
 
-console.log(activity.toString()); // output json
+// Create a simple activity
+as.post().
+  actor('acct:sally@example.org').
+  object('http://www.example.org/post').
+  get().
+  prettyWrite(function(err,doc) {
+    console.log(doc);
+  });
 ```
 
-### Tasks
+The API uses a fluent factory pattern for creating AS objects. There are factory
+methods for each of the main types of objects defined by the Activity Streams 2.0
+vocabulary. Each takes an optional array of types that will be set on the object.
+If the `[types]` is unspecified, a default will be assigned depending on the 
+object being created. Each of the factory methods returns a builder specific to 
+the kind of object being generated. Once the object has been built, call the `get`
+method to return the generated object.
 
-#### Creating a simple Object
+* `as.object([types])`
+* `as.actor([types])` 
+* `as.activity([types])`  
+* `as.collection([types])`  
+* `as.orderedCollection([types])`  
+* `as.content([types])`  
+* `as.link([types])`  
+* `as.accept([types])`  
+* `as.tentativeAccept([types])`  
+* `as.add([types])`  
+* `as.arrive([types])`  
+* `as.create([types])`  
+* `as.delete([types])`  
+* `as.favorite([types])`  
+* `as.follow([types])`  
+* `as.ignore([types])`  
+* `as.join([types])`  
+* `as.leave([types])`  
+* `as.like([types])`  
+* `as.offer([types])`  
+* `as.connect([types])`  
+* `as.friendRequest([types])`  
+* `as.give([types])`  
+* `as.invite([types])`  
+* `as.post([types])`  
+* `as.reject([types])`  
+* `as.tentativeReject([types])`  
+* `as.remove([types])`  
+* `as.review([types])`  
+* `as.save([types])`  
+* `as.share([types])`  
+* `as.undo([types])`  
+* `as.update([types])`  
+* `as.experience([types])`  
+* `as.view([types])`  
+* `as.watch([types])`  
+* `as.listen([types])`  
+* `as.read([types])`  
+* `as.respond([types])`  
+* `as.move([types])`  
+* `as.travel([types])`  
+* `as.announce([types])`  
+* `as.block([types])`  
+* `as.flag([types])`  
+* `as.dislike([types])`  
+* `as.confirm([types])`  
+* `as.assign([types])`  
+* `as.complete([types])`  
+* `as.achieve([types])`  
+* `as.application([types])`  
+* `as.content([types])`  
+* `as.device([types])`  
+* `as.group([types])`  
+* `as.organization([types])`  
+* `as.person([types])`  
+* `as.process([types])`  
+* `as.role([types])`  
+* `as.service([types])`  
+* `as.article([types])`  
+* `as.album([types])`  
+* `as.folder([types])`  
+* `as.story([types])`  
+* `as.document([types])`  
+* `as.audio([types])`  
+* `as.image([types])`  
+* `as.video([types])`  
+* `as.note([types])`  
+* `as.page([types])`  
+* `as.possibleAnswer([types])`  
+* `as.question([types])`  
+* `as.event([types])`  
+* `as.place([types])`  
+* `as.reservation([types])`  
+* `as.mention([types])`  
 
-```javascript
-var obj = asms.Object({
-  objectType: 'note',
-  content: 'This is a note'
-  id: 'urn:example:notes:1',
-  published: new Date()
-});
-```
-
-#### Creating a simple Activity
-
-```javascript
-var obj = asms.Activity({
-  verb: 'post',
-  actor: 'acct:joe@example.org',
-  object: 'http://example.org/notes/1'
-});
-```
-
-#### Creating a simple Collection
-
-```javascript
-var col = asms.Collection({
-  totalItems: 1,
-  items: [
-    {
-      objectType: 'note',
-      content: 'This is a note'
-      id: 'urn:example:notes:1',
-      published: new Date()
-    }
-  ]
-});
-```
-
-#### Extending objects with Mixin Models
-
-Models allow Activity Stream objects to be dynamically extended while enforcing the
-type safety and wrapper mechanisms. For example, the Model.Ext.Mood model tells the 
-wrapper to treat 'mood' properties on the vanilla object as Activity Stream Type Values.
-
-```javascript
-var m = asms.Object({mood:'happy'});
-
-console.log(m.mood); // undefined
-
-m = m.extended(asms.Models.Ext.Mood);
-
-console.log(m.mood.id); // 'happy'
-```
-#### Extending base Models
-
-The base Models can be extended by adding new type specific properties. These will 
-be applied to all new Activity Stream objects (existing objects will be unaffected).
+The object returned by `get` is a read-only view of the Activity Stream object. It will have property methods that are specific to the object's type. You can export the built object as an ordinary Javascript object using the `export` method. This will generate a JSON-LD compliant Javascript object.
 
 ```javascript
-asms.Models.Object.boolean('foo',undefined,true);
+var as = require('activitystreams');
 
-var obj = asms.Object({});
-console.log(obj.foo); // 'true'
+as.note().
+   displayName('foo').
+   content('this is a simple note').
+   get().
+   export(function (err, obj) {
+     // obj is an ordinary javascript object
+     console.log(obj['@type']);
+     console.log(obj['displayName']);
+     console.log(obj['content']);
+   });
 ```
 
-#### Creating new Models
-
-You can create new models by extending existing ones.
+To serialize the Activity Streams object out as JSON, use the `write` or `prettyWrite` methods.
 
 ```javascript
-var myModel = asms.Models.Base.extend().
-  property('foo').
-  nlv('bar');
+var as = require('activitystreams');
+
+as.note().
+   displayName('foo').
+   content('this is a simple note').
+   get().
+   write(function (err, doc) {
+     // doc is a string
+     console.log(doc);
+   });
 ```
 
-## Reference
+```javascript
+var as = require('activitystreams');
 
-### API
+as.note().
+   displayName('foo').
+   content('this is a simple note').
+   get().
+   prettyWrite(function (err, doc) {
+     // doc is a string
+     console.log(doc);
+   });
+```
 
-TBD
+Note that The `export`, `write`, and `prettyWrite` methods are all async. You MUST pass in a callback function. This is largely because of the JSON-LD processing that's happening under the covers.
+
